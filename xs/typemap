@@ -1,0 +1,3 @@
+TYPEMAP
+
+serdperl_sink *  T_PTROBJ_MG
