@@ -1,0 +1,16 @@
+env.c
+Makefile.PL
+node.c
+perlsink.c
+perlsink.h
+reader.c
+serd_config.h
+serd_internal.h
+serd.h
+Serd.xs
+string.c
+typemap
+uri.c
+writer.c
+lib/RDF/Trine/Parser/Serd.pm
+t/simple.t
