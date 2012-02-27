@@ -9,20 +9,20 @@ my $deps = ExtUtils::Depends->new('FourStore', 'XS::Object::Magic');
 # $deps->set_inc($fourstore{cflags});
 # $deps->set_libs($fourstore{libs});
 
-warn Dumper({$deps->get_makefile_vars});
+my $inc_files = join(' ', glob '*.h');
+my $src_files = join(' ', glob '*.c');
+my $xs_files  = join(' ', glob '*.xs');
 
 my %WriteMakefileArgs	= (
 	NAME => 'RDF::Trine::Parser::Serd',
 	VERSION_FROM => 'lib/RDF/Trine/Parser/Serd.pm',
 	$deps->get_makefile_vars,
-	CCFLAGS => '-std=gnu99',
-	OBJECT => 'xs/Serd$(OBJ_EXT) src/env$(OBJ_EXT) src/node$(OBJ_EXT) src/perlsink$(OBJ_EXT) src/reader$(OBJ_EXT) src/string$(OBJ_EXT) src/uri$(OBJ_EXT) src/writer$(OBJ_EXT)',
-	XS => {
-		'xs/Serd.xs' => 'xs/Serd.c',
-	},
-	PREREQ_PM => {
-		'Params::Util'	=> 0,
-	},
+	OBJECT => 'Serd$(OBJ_EXT) env$(OBJ_EXT) node$(OBJ_EXT) perlsink$(OBJ_EXT) reader$(OBJ_EXT) string$(OBJ_EXT) uri$(OBJ_EXT) writer$(OBJ_EXT)',
+	depend	=> { 'Serd.c' => "$inc_files $src_files $xs_files" },
 );
+
+warn Dumper($WriteMakefileArgs{depend});
+
+$WriteMakefileArgs{CCFLAGS} = ( $Config::Config{ccflags} || '' ) . ' -I. -std=gnu99';
 
 WriteMakefile( %WriteMakefileArgs );
