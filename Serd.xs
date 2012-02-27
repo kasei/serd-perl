@@ -3,6 +3,8 @@
 #include "XSUB.h"
 
 #include "xs_object_magic.h"
+#include "serd_internal.h"
+#include "perlsink.h"
 
 static SV *
 S_new_instance (pTHX_ HV *klass)
@@ -23,44 +25,6 @@ S_attach_struct (pTHX_ SV *obj, void *ptr)
   return obj;
 }
 
-static SV *
-new_node_instance (pTHX_ SV *klass, UV n_args, ...)
-{
-  int count;
-  va_list ap;
-  SV *ret;
-  dSP;
-
-  ENTER;
-  SAVETMPS;
-
-  PUSHMARK(SP);
-  EXTEND(SP, n_args + 1);
-  PUSHs(klass);
-
-  va_start(ap, n_args);
-  while (n_args--)
-    PUSHs(va_arg(ap, SV *));
-  va_end(ap);
-
-  PUTBACK;
-
-  count = call_method("new", G_SCALAR);
-
-  if (count != 1)
-    croak("Big trouble");
-
-  SPAGAIN;
-  ret = POPs;
-  SvREFCNT_inc(ret);
-
-  FREETMPS;
-  LEAVE;
-
-  return ret;
-}
-
-
 #define new_instance(klass)  S_new_instance(aTHX_ klass)
 #define attach_struct(obj, ptr)  S_attach_struct(aTHX_ obj, ptr)
 
@@ -73,19 +37,22 @@ PROTOTYPES: DISABLE
 BOOT:
 {
   HV *stash = gv_stashpvs("RDF::Trine::Parser::Serd", 0);
+  EXPORT_FLAG(SERD_SUCCESS);         /**< No error */
+  EXPORT_FLAG(SERD_FAILURE);         /**< Non-fatal failure */
 }
 
 
 void
-new (klass, const char *name, char *pw, int readonly=0)
+new (klass, cb)
     SV *klass
+    SV *cb
   PREINIT:
     serdperl_sink* handle;
   PPCODE:
-    if (!(handle = new_perlsink(NULL, "STATEMENT"))) {
+    if (!(handle = new_perlsink(NULL, cb))) {
       croak("foo");
     }
-
+	
     XPUSHs(attach_struct(new_instance(gv_stashsv(klass, 0)), handle));
 
 void
@@ -95,20 +62,21 @@ DESTROY (serdperl_sink *handle)
 
 
 void
-serdperl_parse_file (handle, filename)
+serdperl_parse_file (handle, base_uri_str, filename)
     serdperl_sink *handle
+    const char* base_uri_str
     const char* filename
   PREINIT:
-	FILE* in_fd
-	const uint8_t* input
-	SerdURI base_uri
-	SerdNode base_uri_node
-	SerdReader* reader
-	SerdStatus status
+	FILE* in_fd;
+	const uint8_t* input;
+	SerdURI base_uri;
+	SerdNode base_uri_node;
+	SerdReader* reader;
+	SerdStatus status;
   PPCODE:
 	input = serd_uri_to_path((const uint8_t*) filename);
 	if (!input || !(in_fd = serd_fopen((const char*)input, "r"))) {
-		return 1;
+		return;
 	}
 	base_uri = SERD_URI_NULL;
 	base_uri_node = serd_node_new_uri_from_string(base_uri_str, &base_uri, &base_uri);
@@ -116,5 +84,24 @@ serdperl_parse_file (handle, filename)
 	status = serd_reader_read_file_handle(reader, in_fd, filename);
 	serd_reader_free(reader);
 	fclose(in_fd);
+	serd_node_free(&base_uri_node);
+	return;
+
+void
+serdperl_parse (handle, base_uri_str, string)
+    serdperl_sink *handle
+    const char* base_uri_str
+    const char* string
+  PREINIT:
+	SerdURI base_uri;
+	SerdNode base_uri_node;
+	SerdReader* reader;
+	SerdStatus status;
+  PPCODE:
+	base_uri = SERD_URI_NULL;
+	base_uri_node = serd_node_new_uri_from_string(base_uri_str, &base_uri, &base_uri);
+	reader = serd_reader_new( SERD_TURTLE, handle, NULL, (SerdBaseSink)perlsink_set_base_uri, (SerdPrefixSink)perlsink_set_prefix, (SerdStatementSink)perlsink_write_statement, (SerdEndSink)NULL);
+	status = serd_reader_read_string(reader, string);
+	serd_reader_free(reader);
 	serd_node_free(&base_uri_node);
 	return;

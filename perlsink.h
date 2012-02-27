@@ -20,6 +20,7 @@
 #include "serd.h"
 
 struct serdperl_sink_s {
+	SV* callback;
 	const char* prefix;
 	SerdURI base_uri;
 	SerdEnv* env;
@@ -27,7 +28,7 @@ struct serdperl_sink_s {
 
 typedef struct serdperl_sink_s serdperl_sink;
 
-serdperl_sink* new_perlsink ( const SerdURI* base_uri, const char* prefix );
+serdperl_sink* new_perlsink ( const SerdURI* base_uri, SV* callback );
 void free_perlsink ( serdperl_sink* p );
 
 SerdStatus perlsink_write_statement(serdperl_sink* handle, SerdStatementFlags flags, const SerdNode* graph, const SerdNode* subject, const SerdNode* predicate, const SerdNode* object, const SerdNode* datatype, const SerdNode* lang);
