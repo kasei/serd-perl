@@ -3,7 +3,7 @@
 #include "XSUB.h"
 
 #include "xs_object_magic.h"
-#include "serd_internal.h"
+#include "serd.h"
 #include "perlsink.h"
 
 static SV *
@@ -75,7 +75,7 @@ serdperl_parse_file2 (handle, base_uri_str, filename, callback=NULL)
   CODE:
 	handle->callback	= 	callback;
 	input = serd_uri_to_path((const uint8_t*) filename);
-	if (!input || !(in_fd = serd_fopen((const char*)input, "r"))) {
+	if (!input || !(in_fd = fopen((const char*)input, "r"))) {
 		return;
 	}
 	base_uri = SERD_URI_NULL;
