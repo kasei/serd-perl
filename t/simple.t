@@ -5,27 +5,28 @@ use Data::Dumper;
 use_ok( 'RDF::Trine::Parser::Serd' );
 
 {
-	my $p	= RDF::Trine::Parser::Serd->new(sub {});
+	my $p	= RDF::Trine::Parser::Serd->new();
 	isa_ok( $p, 'RDF::Trine::Parser::Serd' );
 }
 
 {
 	my $calls	= 0;
-	my $p	= RDF::Trine::Parser::Serd->new(sub { $calls++ });
-	$p->parse( 'http://example.org/', "<s> <p> <o> .\n" );
+	my $p	= RDF::Trine::Parser::Serd->new();
+	$p->parse( 'http://example.org/', "<s> <p> <o> .\n", sub { $calls++ } );
 	is( $calls, 1, 'statement handler called 1 time' );
 }
 
 {
 	my $calls	= 0;
-	my $p	= RDF::Trine::Parser::Serd->new(sub { $calls++ });
-	$p->parse( 'http://example.org/', "<s> <p> 1,2,3 .\n" );
+	my $p	= RDF::Trine::Parser::Serd->new();
+	$p->parse( 'http://example.org/', "<s> <p> 1,2,3 .\n", sub { $calls++ } );
 	is( $calls, 3, 'statement handler called 3 times' );
 }
 
 {
 	my $calls	= 0;
-	my $p	= RDF::Trine::Parser::Serd->new(sub {
+	my $p	= RDF::Trine::Parser::Serd->new();
+	$p->parse( 'http://example.org/base/', "</s> <p> 7 .\n", sub {
 		$calls++;
 		my $st	= shift;
 		isa_ok( $st, 'RDF::Trine::Statement' );
@@ -33,14 +34,14 @@ use_ok( 'RDF::Trine::Parser::Serd' );
 		is( $st->subject->uri_value, 'http://example.org/s', 'expected absolute IRI base resolution (API-set base)' );
 		isa_ok( $st->predicate, 'RDF::Trine::Node::Resource' );
 		is( $st->predicate->uri_value, 'http://example.org/base/p', 'expected relative IRI base resolution (API-set base)' );
-	});
-	$p->parse( 'http://example.org/base/', "</s> <p> 7 .\n" );
+	} );
 	is( $calls, 1, 'statement handler called 1 time' );
 }
 
 {
 	my $calls	= 0;
-	my $p	= RDF::Trine::Parser::Serd->new(sub {
+	my $p	= RDF::Trine::Parser::Serd->new();
+	$p->parse( undef, "\@base <http://example.org/base/> .\n</s> <p> 7 .\n", sub {
 		$calls++;
 		my $st	= shift;
 		isa_ok( $st, 'RDF::Trine::Statement' );
@@ -49,13 +50,13 @@ use_ok( 'RDF::Trine::Parser::Serd' );
 		isa_ok( $st->predicate, 'RDF::Trine::Node::Resource' );
 		is( $st->predicate->uri_value, 'http://example.org/base/p', 'expected relative IRI base resolution (data-set base)' );
 	});
-	$p->parse( undef, "\@base <http://example.org/base/> .\n</s> <p> 7 .\n" );
 	is( $calls, 1, 'statement handler called 1 time' );
 }
 
 {
 	my $calls	= 0;
-	my $p	= RDF::Trine::Parser::Serd->new(sub {
+	my $p	= RDF::Trine::Parser::Serd->new();
+	$p->parse( 'http://example.org/', "<s> <p> 7 .\n", sub {
 		$calls++;
 		my $st	= shift;
 		isa_ok( $st, 'RDF::Trine::Statement' );
@@ -65,7 +66,6 @@ use_ok( 'RDF::Trine::Parser::Serd' );
 		is( $st->object->literal_value, '7', 'expected literal value' );
 		is( $dt, 'http://www.w3.org/2001/XMLSchema#integer', 'expected integer datatype' );
 	});
-	$p->parse( 'http://example.org/', "<s> <p> 7 .\n" );
 	is( $calls, 1, 'statement handler called 1 time' );
 }
 
