@@ -43,13 +43,12 @@ BOOT:
 
 
 void
-new (klass, cb)
+new (klass, ...)
     SV *klass
-    SV *cb
   PREINIT:
     serdperl_sink* handle;
   PPCODE:
-    if (!(handle = new_perlsink(NULL, cb))) {
+    if (!(handle = new_perlsink(NULL))) {
       croak("foo");
     }
 	
@@ -61,19 +60,20 @@ DESTROY (serdperl_sink *handle)
       free_perlsink(handle);
 
 
-void
-serdperl_parse_file (handle, base_uri_str, filename)
+int
+serdperl_parse_file2 (handle, base_uri_str, filename, callback=NULL)
     serdperl_sink *handle
     const char* base_uri_str
     const char* filename
+    SV* callback
   PREINIT:
 	FILE* in_fd;
 	const uint8_t* input;
 	SerdURI base_uri;
 	SerdNode base_uri_node;
 	SerdReader* reader;
-	SerdStatus status;
-  PPCODE:
+  CODE:
+	handle->callback	= 	callback;
 	input = serd_uri_to_path((const uint8_t*) filename);
 	if (!input || !(in_fd = serd_fopen((const char*)input, "r"))) {
 		return;
@@ -81,27 +81,32 @@ serdperl_parse_file (handle, base_uri_str, filename)
 	base_uri = SERD_URI_NULL;
 	base_uri_node = serd_node_new_uri_from_string(base_uri_str, &base_uri, &base_uri);
 	reader = serd_reader_new( SERD_TURTLE, handle, NULL, (SerdBaseSink)perlsink_set_base_uri, (SerdPrefixSink)perlsink_set_prefix, (SerdStatementSink)perlsink_write_statement, (SerdEndSink)NULL);
-	status = serd_reader_read_file_handle(reader, in_fd, filename);
+	RETVAL = serd_reader_read_file_handle(reader, in_fd, filename);
 	serd_reader_free(reader);
 	fclose(in_fd);
 	serd_node_free(&base_uri_node);
-	return;
+	handle->callback	= NULL;
+  OUTPUT:
+	RETVAL
 
-void
-serdperl_parse (handle, base_uri_str, string)
+int
+serdperl_parse2 (handle, base_uri_str, string, callback=NULL)
     serdperl_sink *handle
     const char* base_uri_str
     const char* string
+    SV* callback
   PREINIT:
 	SerdURI base_uri;
 	SerdNode base_uri_node;
 	SerdReader* reader;
-	SerdStatus status;
-  PPCODE:
+  CODE:
+	handle->callback	= callback;
 	base_uri = SERD_URI_NULL;
 	base_uri_node = serd_node_new_uri_from_string(base_uri_str, &base_uri, &base_uri);
 	reader = serd_reader_new( SERD_TURTLE, handle, NULL, (SerdBaseSink)perlsink_set_base_uri, (SerdPrefixSink)perlsink_set_prefix, (SerdStatementSink)perlsink_write_statement, (SerdEndSink)NULL);
-	status = serd_reader_read_string(reader, string);
+	RETVAL = serd_reader_read_string(reader, string);
 	serd_reader_free(reader);
 	serd_node_free(&base_uri_node);
-	return;
+	handle->callback	= NULL;
+  OUTPUT:
+	RETVAL
