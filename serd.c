@@ -802,6 +802,7 @@ struct SerdReaderImpl {
 	SerdPrefixSink    prefix_sink;
 	SerdStatementSink statement_sink;
 	SerdEndSink       end_sink;
+	SerdErrorSink     error_sink;
 	Ref               rdf_first;
 	Ref               rdf_rest;
 	Ref               rdf_nil;
@@ -829,10 +830,14 @@ error(SerdReader* reader, const char* fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	fprintf(stderr, "error: %s:%u:%u: ",
-	        reader->cur.filename, reader->cur.line, reader->cur.col);
-	vfprintf(stderr, fmt, args);
+	int r	= reader->error_sink( reader->handle, reader->cur.filename, reader->cur.line, reader->cur.col, fmt, args );
 	va_end(args);
+	return r;
+}
+
+static int default_error_sink (void* handle, const uint8_t* filename, unsigned line, unsigned col, const char* fmt, va_list args) {
+	fprintf(stderr, "error: %s:%u:%u: ", filename, line, col);
+	vfprintf(stderr, fmt, args);
 	return 0;
 }
 
@@ -2082,7 +2087,8 @@ serd_reader_new(SerdSyntax        syntax,
                 SerdBaseSink      base_sink,
                 SerdPrefixSink    prefix_sink,
                 SerdStatementSink statement_sink,
-                SerdEndSink       end_sink)
+                SerdEndSink       end_sink,
+                SerdErrorSink     error_sink)
 {
 	const Cursor cur = { NULL, 0, 0 };
 	SerdReader*  me  = (SerdReader*)malloc(sizeof(struct SerdReaderImpl));
@@ -2092,6 +2098,7 @@ serd_reader_new(SerdSyntax        syntax,
 	me->prefix_sink      = prefix_sink;
 	me->statement_sink   = statement_sink;
 	me->end_sink         = end_sink;
+	me->error_sink       = error_sink ? error_sink : default_error_sink;
 	me->fd               = 0;
 	me->stack            = serd_stack_new(SERD_PAGE_SIZE);
 	me->syntax           = syntax;

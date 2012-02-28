@@ -53,22 +53,26 @@ L<RDF::Trine::Store> class.
 =cut
 
 sub parse {
+	my $self	= $_[0];
 	unless (defined($_[1])) {
 		$_[1]	= "";	# don't pass an undef base uri to the XS
 	}
 	my $r	= &parse2;
 	if ($r != SERD_SUCCESS()) {
-		throw RDF::Trine::Error::ParserError -text => "Turtle parsing error";
+		my $error	= $self->error;
+		throw RDF::Trine::Error::ParserError -text => $error;
 	}
 }
 
 sub parse_file {
+	my $self	= $_[0];
 	unless (defined($_[1])) {
 		$_[1]	= "";	# don't pass an undef base uri to the XS
 	}
 	my $r	= &parse_file2;
 	if ($r != SERD_SUCCESS()) {
-		throw RDF::Trine::Error::ParserError -text => "Turtle parsing error";
+		my $error	= $self->error;
+		throw RDF::Trine::Error::ParserError -text => $error;
 	}
 }
 

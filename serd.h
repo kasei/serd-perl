@@ -464,6 +464,14 @@ serd_node_free(SerdNode* node);
    @{
 */
 
+
+typedef int (*SerdErrorSink)(void*           handle,
+                            const uint8_t*   filename,
+                            unsigned         line,
+                            unsigned         col,
+                            const char*      fmt,
+                            va_list          args);
+
 /**
    Sink (callback) for base URI changes.
 
@@ -613,7 +621,8 @@ serd_reader_new(SerdSyntax        syntax,
                 SerdBaseSink      base_sink,
                 SerdPrefixSink    prefix_sink,
                 SerdStatementSink statement_sink,
-                SerdEndSink       end_sink);
+                SerdEndSink       end_sink,
+                SerdErrorSink     error_sink);
 
 /**
    Return the @c handle passed to @ref serd_reader_new.

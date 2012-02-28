@@ -203,11 +203,29 @@ serdperl_sink* new_perlsink ( const SerdURI* base_uri ) {
 	serdperl_sink* p	= malloc(sizeof(serdperl_sink));
 	p->env		= serd_env_new(base_uri);
 	p->callback	= NULL;
+	p->error	= NULL;
 	p->base_uri	= base_uri ? *base_uri : SERD_URI_NULL;
 	return p;
 }
 
 void free_perlsink ( serdperl_sink* p ) {
 	serd_env_free(p->env);
+	if (p->error) {
+		SvREFCNT_dec(p->error);
+		p->error	= NULL;
+	}
 	free(p);
+}
+
+int perlsink_error_sink (serdperl_sink* handle, const uint8_t* filename, unsigned line, unsigned col, const char* fmt, va_list args) {
+	if (handle->error) {
+		SvREFCNT_dec(handle->error);
+		handle->error	= NULL;
+	}
+	
+	handle->error	= newSVpvf("Parser error: %s:%u:%u: ", filename, line, col);
+	sv_vcatpvfn(handle->error, fmt, strlen(fmt), args, NULL, 0, NULL);
+//	fprintf(stderr, "perl error: %s:%u:%u: ", filename, line, col);
+//	vfprintf(stderr, fmt, args);
+	return 0;
 }

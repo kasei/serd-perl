@@ -21,6 +21,7 @@
 
 struct serdperl_sink_s {
 	SV* callback;
+	SV* error;
 	SerdURI base_uri;
 	SerdEnv* env;
 };
@@ -30,6 +31,7 @@ typedef struct serdperl_sink_s serdperl_sink;
 serdperl_sink* new_perlsink ( const SerdURI* base_uri );
 void free_perlsink ( serdperl_sink* p );
 
+int perlsink_error_sink (serdperl_sink* handle, const uint8_t* filename, unsigned line, unsigned col, const char* fmt, va_list args);
 SerdStatus perlsink_write_statement(serdperl_sink* handle, SerdStatementFlags flags, const SerdNode* graph, const SerdNode* subject, const SerdNode* predicate, const SerdNode* object, const SerdNode* datatype, const SerdNode* lang);
 SerdStatus perlsink_set_prefix(serdperl_sink* handle, const SerdNode* name, const SerdNode* uri);
 SerdStatus perlsink_set_base_uri(serdperl_sink* handle, const SerdNode* uri);
