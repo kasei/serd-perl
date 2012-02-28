@@ -19,4 +19,5 @@ Author
 ------
 
 The serd sources are copyright 2011-2012 [David Robillard](http://drobilla.net/).
-The perl XS and C wrapper is copyright 2012 [Gregory Todd Williams](http://kasei.us/).
+
+The Perl XS and C wrapper is copyright 2012 [Gregory Todd Williams](http://kasei.us/).
