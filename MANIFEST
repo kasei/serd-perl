@@ -81,3 +81,5 @@ t/parser-turtle.t
 t/prefix.t
 t/simple.t
 typemap
+xt/pod.t
+xt/pod_coverage.t
