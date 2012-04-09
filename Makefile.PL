@@ -4,7 +4,7 @@ use ExtUtils::MakeMaker;
 use ExtUtils::Depends;
 use ExtUtils::PkgConfig;
 
-my $deps = ExtUtils::Depends->new('XS::Object::Magic');
+my $deps = ExtUtils::Depends->new('RDF::Trine::Parser::Serd', 'XS::Object::Magic');
 my $inc_files = join(' ', glob '*.h');
 my $src_files = join(' ', glob '*.c');
 my $xs_files  = join(' ', glob '*.xs');
