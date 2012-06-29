@@ -95,9 +95,10 @@ serdperl_parse_file2 (handle, base_uri_str, filename, callback=NULL)
 		return;
 	}
 	base_uri = SERD_URI_NULL;
-	base_uri_node = serd_node_new_uri_from_string(base_uri_str, &base_uri, &base_uri);
+	base_uri_node = serd_node_new_uri_from_string((const uint8_t*) base_uri_str, &base_uri, &base_uri);
+	serd_env_set_base_uri(handle->env, &base_uri_node);
 	reader = serd_reader_new( SERD_TURTLE, handle, NULL, (SerdBaseSink)perlsink_set_base_uri, (SerdPrefixSink)perlsink_set_prefix, (SerdStatementSink)perlsink_write_statement, (SerdEndSink)NULL, (SerdErrorSink)perlsink_error_sink);
-	RETVAL = serd_reader_read_file_handle(reader, in_fd, filename);
+	RETVAL = serd_reader_read_file_handle(reader, in_fd, (const uint8_t*) filename);
 	serd_reader_free(reader);
 	fclose(in_fd);
 	serd_node_free(&base_uri_node);
@@ -118,9 +119,10 @@ serdperl_parse2 (handle, base_uri_str, string, callback=NULL)
   CODE:
 	handle->callback	= callback;
 	base_uri = SERD_URI_NULL;
-	base_uri_node = serd_node_new_uri_from_string(base_uri_str, &base_uri, &base_uri);
+	base_uri_node = serd_node_new_uri_from_string((const uint8_t*) base_uri_str, &base_uri, &base_uri);
+	serd_env_set_base_uri(handle->env, &base_uri_node);
 	reader = serd_reader_new( SERD_TURTLE, handle, NULL, (SerdBaseSink)perlsink_set_base_uri, (SerdPrefixSink)perlsink_set_prefix, (SerdStatementSink)perlsink_write_statement, (SerdEndSink)NULL, (SerdErrorSink)perlsink_error_sink);
-	RETVAL = serd_reader_read_string(reader, string);
+	RETVAL = serd_reader_read_string(reader, (const uint8_t*) string);
 	serd_reader_free(reader);
 	serd_node_free(&base_uri_node);
 	handle->callback	= NULL;

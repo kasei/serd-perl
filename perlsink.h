@@ -22,13 +22,13 @@
 struct serdperl_sink_s {
 	SV* callback;
 	SV* error;
-	SerdURI base_uri;
+	char* base_uri;
 	SerdEnv* env;
 };
 
 typedef struct serdperl_sink_s serdperl_sink;
 
-serdperl_sink* new_perlsink ( const SerdURI* base_uri );
+serdperl_sink* new_perlsink ( const char* base_uri );
 void free_perlsink ( serdperl_sink* p );
 
 int perlsink_error_sink (serdperl_sink* handle, const uint8_t* filename, unsigned line, unsigned col, const char* fmt, va_list args);

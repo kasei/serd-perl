@@ -100,14 +100,22 @@ S_canonical_literal_value (pTHX_ SV* value, SV* datatype) {
 SV*
 S_serd_node_to_object (serdperl_sink* handle, const SerdNode* node, const SerdNode* dt, const SerdNode* lang) {
 	char* buf	= NULL;
+	char* buf2	= NULL;
 	char* l		= NULL;
 	char* d		= NULL;
 	char* str	= NULL;
 	SV* n		= NULL;
 	int prefix_len;
 	int suffix_len;
+	SerdURI uri;
 	SerdChunk uri_prefix;
 	SerdChunk uri_suffix;
+	const SerdNode* base;
+
+	base	= serd_env_get_base_uri(handle->env, &uri);
+	buf2	= alloca(base->n_bytes+1);
+	S_copy_value_to_buffer( buf2, base );
+
 	switch (node->type) {
 		case SERD_BLANK:
 			buf	= alloca(node->n_bytes+1);
@@ -121,15 +129,42 @@ S_serd_node_to_object (serdperl_sink* handle, const SerdNode* node, const SerdNo
 				return false;
 			}
 			buf	= alloca(uri_prefix.len+uri_suffix.len+1);
-			strncpy( buf, uri_prefix.buf, uri_prefix.len);
+			strncpy( buf, (const char *) uri_prefix.buf, uri_prefix.len);
 			buf[ uri_prefix.len ]	= '\0';
-			strncat( buf, uri_suffix.buf, uri_suffix.len);
-			n = S_new_node_instance(aTHX_ sv_2mortal(newSVpvs("RDF::Trine::Node::Resource")), 1, sv_2mortal(newSVpvn_utf8(buf, strlen(buf), 1)));
+			strncat( buf, (const char *) uri_suffix.buf, uri_suffix.len);
+			
+			if (base->n_bytes > 0) {
+				n = S_new_node_instance(
+					aTHX_ sv_2mortal(newSVpvs("RDF::Trine::Node::Resource")),
+					2,
+					sv_2mortal(newSVpvn_utf8(buf, strlen(buf), 1)),
+					sv_2mortal(newSVpvn_utf8(buf2, strlen(buf2), 1))
+				);
+			} else {
+				n = S_new_node_instance(
+					aTHX_ sv_2mortal(newSVpvs("RDF::Trine::Node::Resource")),
+					1,
+					sv_2mortal(newSVpvn_utf8(buf, strlen(buf), 1))
+				);
+			}
 			break;
 		case SERD_URI:
 			buf	= alloca(node->n_bytes+1);
 			S_copy_value_to_buffer( buf, node );
-			n = S_new_node_instance(aTHX_ sv_2mortal(newSVpvs("RDF::Trine::Node::Resource")), 1, sv_2mortal(newSVpvn_utf8(buf, strlen(buf), 1)));
+			if (base->n_bytes > 0) {
+				n = S_new_node_instance(
+					aTHX_ sv_2mortal(newSVpvs("RDF::Trine::Node::Resource")),
+					2,
+					sv_2mortal(newSVpvn_utf8(buf, strlen(buf), 1)),
+					sv_2mortal(newSVpvn_utf8(buf2, strlen(buf2), 1))
+				);
+			} else {
+				n = S_new_node_instance(
+					aTHX_ sv_2mortal(newSVpvs("RDF::Trine::Node::Resource")),
+					1,
+					sv_2mortal(newSVpvn_utf8(buf, strlen(buf), 1))
+				);
+			}
 			break;
 		case SERD_LITERAL:
 			buf	= alloca(node->n_bytes+1);
@@ -193,22 +228,35 @@ SerdStatus perlsink_set_prefix(serdperl_sink* handle, const SerdNode* name, cons
 
 SerdStatus perlsink_set_base_uri(serdperl_sink* handle, const SerdNode* uri) {
 	if (!serd_env_set_base_uri(handle->env, uri)) {
-		serd_env_get_base_uri(handle->env, &handle->base_uri);
+		SerdURI base;
+		serd_env_get_base_uri(handle->env, &base);
 		return SERD_SUCCESS;
 	}
 	return SERD_ERR_UNKNOWN;
 }
 
-serdperl_sink* new_perlsink ( const SerdURI* base_uri ) {
+serdperl_sink* new_perlsink ( const char* base_uri ) {
 	serdperl_sink* p	= malloc(sizeof(serdperl_sink));
-	p->env		= serd_env_new(base_uri);
 	p->callback	= NULL;
 	p->error	= NULL;
-	p->base_uri	= base_uri ? *base_uri : SERD_URI_NULL;
+	p->base_uri	= NULL;
+	
+	SerdNode base	= SERD_NODE_NULL;
+	if (base_uri) {
+		SerdURI out;
+		p->base_uri	= malloc(strlen(base_uri)+1);
+		strcpy(p->base_uri, base_uri);
+		base		= serd_node_new_uri_from_string((const uint8_t*) base_uri, NULL, &out);
+		serd_node_free(&base);
+	}
+	p->env		= serd_env_new(&base);
 	return p;
 }
 
 void free_perlsink ( serdperl_sink* p ) {
+	if (p->base_uri) {
+		free(p->base_uri);
+	}
 	serd_env_free(p->env);
 	if (p->error) {
 		SvREFCNT_dec(p->error);
